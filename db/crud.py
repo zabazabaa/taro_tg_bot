@@ -31,9 +31,9 @@ async def get_masters():
             result = masters.scalars().all()
             return [{'id': master.id, 'name': master.name, 'description': master.description} for master in result]
 
-async def create_order(tg_id: int, master_id: int, text: str, order_datetime: datetime):
+async def create_order(tg_id: int, master_id: int, text: str, order_datetime: datetime, order_id: str, amount: int):
     async with async_session() as session:
         async with session.begin():
-            order = Order(tg_id=tg_id, master_id=master_id, text=text, order_datetime=order_datetime)
+            order = Order(tg_id=tg_id, text=text, order_datetime=order_datetime, is_refunded=False, order_id=order_id, amount=amount)
             session.add(order)
             await session.commit()

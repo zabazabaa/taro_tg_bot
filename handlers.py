@@ -57,15 +57,20 @@ async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
 @router.message(F.successful_payment)
 async def successful_payment(message: Message, state: FSMContext):
     await message.answer('Оплата проведена успешно')
+    order_payload = message.successful_payment.invoice_payload
+    await message.answer(f'Payload вашего заказа:\n{order_payload}')
     await message.answer('Введите запрос для мага:')
+    await state.update_data(order_payload=order_payload)
     await state.set_state(OrderStates.order_description)
 
 @router.message(OrderStates.order_description)
 async def order_description(message: Message, state: FSMContext):
+    data = await state.get_data()
+    payload = data.get('order_payload')
     await state.clear()
     await state.set_state(Form.processing)
     text = message.text
-    await create_order(tg_id=message.from_user.id, text=text, order_datetime=datetime.now(), is_refunded=False)
+    await create_order(tg_id=message.from_user.id, text=text, order_datetime=datetime.now(), is_refunded=False, payload=payload, amount=order_price)
     await message.answer('Заказ успешно создан\тОжидайте около 10 минут')
     response =  generate_resp(text)
     await asyncio.sleep(randint(500,600))

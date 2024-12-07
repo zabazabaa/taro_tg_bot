@@ -2,7 +2,7 @@ from aiogram import Router, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from functools import wraps
 
 from db.crud import add_admin, add_master, check_admin_by_tgid
@@ -27,8 +27,9 @@ def admin_only(handler):
 @admin_only
 async def admin_cmd(message: Message):
     await message.answer("""Команды:
-/refound ID_ЗАКАЗА
+/refound TG_ID ID_ЗАКАЗА
 /add_master
+/add_admin
 """)
 
 @admin_router.message(Command('add_master'))
@@ -54,9 +55,18 @@ async def add_master_description(message: Message, state: FSMContext):
 
 @admin_router.message(Command('refound'))
 @admin_only
-async def refound_cmd(message: Message, bot: Bot, command: Command):
-    command_text = message.text.lstrip('/refound').strip()
-    if command_text:
-        ...
+async def refound_cmd(message: Message, bot: Bot, command: CommandObject):
+    command_args = command.args.split()
+    if command_args:
+        try:
+            await bot.refund_star_payment(user_id=command_args[0], telegram_payment_charge_id=command_args[1])
+        except Exception as e:
+            print(e)
     else:
-        await message.answer('Перадайте ID заказа\n/refound ID_ЗАКАЗА')
+        await message.answer('Перадайте ID заказа\n/refound TG_ID ID_ЗАКАЗА')
+
+@admin_router.message(Command('add_admin'))
+@admin_only
+async def add_admin_cmd(message: Message):
+    await add_admin(message.from_user.id)
+    await message.answer('Админ успешно добавлен')

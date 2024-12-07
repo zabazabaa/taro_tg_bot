@@ -23,7 +23,7 @@ class Order(Base):
     order_datetime = Column(DateTime, nullable=False)
     text = Column(String, nullable=False)
     is_refunded = Column(Boolean, nullable=False)
-    order_id = Column(String, nullable=False)
+    payload = Column(String, nullable=False)
     amount = Column(Integer, nullable=False)
     
 class Admin(Base):

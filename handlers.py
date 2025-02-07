@@ -12,10 +12,12 @@ from db.crud import get_masters, create_order
 
 from kb import main_kb, master_kb, payment_kb
 from config import CURRENCY, order_price
+from messages import msg
 
 from g4f_ai import generate_resp
 
 router = Router()
+lang = 'ru'
 
 class Form(StatesGroup):
     processing = State()
@@ -25,41 +27,40 @@ class OrderStates(StatesGroup):
 
 @router.message(CommandStart())
 async def start(message: Message):
-    await message.answer('Добро пожаловать в бота!', reply_markup=main_kb)
+    await message.answer(msg[lang]['start_msg'], reply_markup=main_kb)
 
-@router.message(F.text == 'Заказать расклад')
-async def crate_order(message: Message, state: FSMContext):
-    await message.answer('Выберите мага')
+@router.message(F.text == msg[lang]['order_reading'])
+async def crate_order(message: Message):
+    await message.answer(msg[lang]['choose_master'])
     masters = await get_masters()
     for master in masters:
-        await message.answer(f'{master['name']} - {master['description']}', reply_markup=master_kb(master['id']))
+        await message.answer(f'{master['name']}\n{master['description']}', reply_markup=master_kb(master['id']))
 
 
 @router.callback_query(F.data.startswith('master_'))
-async def master_callback(callback: CallbackQuery, state: FSMContext):
-    master_id = callback.data.split('_')[1]
-    await callback.answer('Выбран мастер')
+async def master_callback(callback: CallbackQuery):
+    await callback.answer(msg[lang]['master_choosen'])
     prices = [LabeledPrice(label='XTR', amount=order_price)]
     await callback.message.answer_invoice(
-        title='Заказать расклад',
-        description='Заказать расклад у мага',
+        title=msg[lang]['order_reading'],
+        description=msg[lang]['order_reading'],
         prices=prices,
         provider_token='',
-        payload='buy_rasklad',
+        payload='order_reading',
         currency=CURRENCY,
         reply_markup=payment_kb(order_price)
     )
 
-@router.pre_checkout_query(F.data == 'buy_rasklad')
+@router.pre_checkout_query(F.data == 'order_reading')
 async def pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
     await pre_checkout_query.answer(ok=True)
 
 @router.message(F.successful_payment)
 async def successful_payment(message: Message, state: FSMContext):
-    await message.answer('Оплата проведена успешно')
+    await message.answer(msg[lang]['payment_was_successful'])
     order_payload = message.successful_payment.invoice_payload
-    await message.answer(f'Payload вашего заказа:\n{order_payload}')
-    await message.answer('Введите запрос для мага:')
+    await message.answer(f'{msg[lang]["payload_of_order"]}\n{order_payload}')
+    await message.answer(msg[lang]['query_for_master'])
     await state.update_data(order_payload=order_payload)
     await state.set_state(OrderStates.order_description)
 
@@ -71,17 +72,12 @@ async def order_description(message: Message, state: FSMContext):
     await state.set_state(Form.processing)
     text = message.text
     await create_order(tg_id=message.from_user.id, text=text, order_datetime=datetime.now(), is_refunded=False, payload=payload, amount=order_price)
-    await message.answer('Заказ успешно создан\тОжидайте около 10 минут')
+    await message.answer(msg[lang]['order_created'])
     response =  generate_resp(text)
-    await asyncio.sleep(randint(500,600))
+    await asyncio.sleep(randint(500, 600))
     await message.answer(response)
+    await state.clear()
 
 @router.message(Form.processing)
 async def processing(message: Message, state: FSMContext):
-    await message.answer('Ожидайте ответа...')
-
-@router.message(F.text == 'freeGPT')
-async def freeGPT_cmd(message: Message):
-    await message.answer('Заказ успешно создан')
-    response =  generate_resp('Будит ли арина 23 и Иван 24 вместе')
-    await message.answer(response)
+    await message.answer(msg[lang]['processing'])

@@ -67,6 +67,14 @@ async def refound_cmd(message: Message, bot: Bot, command: CommandObject):
 
 @admin_router.message(Command('add_admin'))
 @admin_only
-async def add_admin_cmd(message: Message):
-    await add_admin(message.from_user.id)
-    await message.answer('Админ успешно добавлен')
+async def add_admin_cmd(message: Message, command: CommandObject):
+    try:
+        tg_id = int(command.args)
+    except ValueError:
+        await message.answer('Перадайте ID пользователя')
+    if tg_id:
+        try:
+            await add_admin(tg_id=tg_id)
+            await message.answer('Админ успешно добавлен')
+        except Exception as e:
+            print(e)

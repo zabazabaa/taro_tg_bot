@@ -18,5 +18,5 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  #use this on windows
+    #asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  #use this on windows
     asyncio.run(main())

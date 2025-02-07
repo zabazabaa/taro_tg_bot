@@ -1,5 +1,6 @@
-.gitignore
 .env
 .venv
 __pycache__
+db/__pycache__
 gfddhs.py
+db.sqlite
